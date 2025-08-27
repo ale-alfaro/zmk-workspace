@@ -1,0 +1,2 @@
+CompileFlags:
+  CompilationDatabase: app/build_corne/left       # Search build/ directory for compile_commands.json
