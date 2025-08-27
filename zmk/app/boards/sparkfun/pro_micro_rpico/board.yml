@@ -1,0 +1,8 @@
+board:
+  name: sparkfun_pro_micro_rpico
+  full_name: SparkFun Pro Micro RPICO
+  vendor: sparkfun
+  socs:
+  - name: rp2040
+    variants:
+    - name: w
