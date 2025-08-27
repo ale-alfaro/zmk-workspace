@@ -1,0 +1,14 @@
+if SHIELD_TESTER_CORNE_RPICO
+
+config ZMK_KEYBOARD_NAME
+    default "Tester Corne RPICO"
+
+config ZMK_BLE
+    def_bool n
+
+config SETTINGS
+    def_bool n
+
+
+endif
+
