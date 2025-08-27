@@ -1,0 +1,28 @@
+if SHIELD_CORNE_RPICO_LEFT
+
+config ZMK_KEYBOARD_NAME
+    default "Corne rpico"
+
+config ZMK_SPLIT_WIRED
+     default y
+
+config ZMK_USB
+    default y
+
+config USB_DEVICE_STACK
+    default y
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif
+
+if SHIELD_CORNE_RPICO_LEFT || SHIELD_CORNE_RPICO_RIGHT
+
+config ZMK_SPLIT
+    default y
+
+# config ZMK_SPLIT_WIRED
+#     default y
+endif #SHIELD_CORNE_RPICO_LEFT || SHIELD_CORNE_RPICO_RIGHT
+

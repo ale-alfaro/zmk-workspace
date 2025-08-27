@@ -1,0 +1,11 @@
+file_format: "1"
+id: corne_rpico
+name: Corne RPICO
+type: shield
+url: https://github.com/foostan/crkbd/
+features:
+  - keys
+  - studio
+siblings:
+  - corne_rpico_left
+  - corne_rpico_right

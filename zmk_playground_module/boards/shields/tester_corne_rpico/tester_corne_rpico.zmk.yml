@@ -1,0 +1,8 @@
+file_format: "1"
+id: tester_corne_rpico
+name: Corne RPICO
+type: shield
+url: https://github.com/foostan/crkbd/
+features:
+  - keys
+  - studio

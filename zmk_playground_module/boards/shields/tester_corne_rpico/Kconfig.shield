@@ -1,0 +1,5 @@
+# Copyright (c) 2020 Pete Johanson
+# SPDX-License-Identifier: MIT
+
+config SHIELD_TESTER_CORNE_RPICO
+    def_bool $(shields_list_contains,tester_corne_rpico)
