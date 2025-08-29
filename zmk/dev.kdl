@@ -1,0 +1,53 @@
+// dev.kdl - Zellij layout for ZMK firmware development
+
+layout {
+    // Template for the file watcher and builder pane
+    pane_template name="watcher" {
+        command "just"
+        args "watch"
+        borderless true
+    }
+
+    // Template for the left side TTY pane
+    pane_template name="tty_left" {
+        command "just"
+        args "tty" "left"
+        borderless true
+    }
+
+    // Template for the right side TTY pane
+    pane_template name="tty_right" {
+        command "just"
+        args "tty" "right"
+        borderless true
+    }
+
+    // Template for the interactive shell pane
+    pane_template name="shell" {
+        // No command, will open the default shell
+        borderless true
+    }
+
+    // Main layout structure
+    pane split_direction="vertical" {
+        // Top section with watcher and TTYs
+        pane split_direction="horizontal" {
+            pane name="watcher" {
+                title "Build Watcher"
+            }
+            pane size="35%" split_direction="vertical" {
+                pane name="tty_left" {
+                    title "Left TTY"
+                }
+                pane name="tty_right" {
+                    title "Right TTY"
+                }
+            }
+        }
+        // Bottom section with an interactive shell
+        pane size="25%" name="shell" {
+            title "Shell"
+            focus true
+        }
+    }
+}

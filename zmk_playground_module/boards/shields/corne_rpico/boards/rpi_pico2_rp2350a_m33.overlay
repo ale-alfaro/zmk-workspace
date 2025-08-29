@@ -1,0 +1,50 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Copyright (c) 2024 Andrew Featherstone <andrew.featherstone@gmail.com>
+ */
+
+/* Pico 2 is compatible with the Pico 1, so reuse. */
+/* #include "rpi_pico.overlay" */
+
+
+
+#include <raspberrypi/rpi_pico/rp2350a.dtsi>
+#include <raspberrypi/rpi_pico/m33.dtsi>
+/* #include "rpi_pico2.dtsi" */
+
+
+
+&pinctrl {
+    /* configuration for the usart0 "default" state */
+    uart1_default: uart1_default {
+        group1 {
+            pinmux = <UART1_TX_P8>;
+            };
+        group2 {
+            pinmux = <UART1_RX_P9>;
+            /* enable input on pin 1 */
+            input-enable;
+        };
+    };
+};
+
+&pico_serial {
+    status = "okay";
+};
+
+&gpio0 {
+    status = "okay";
+};
+
+&uart1{
+    current-speed = <115200>;
+    status = "okay";
+    pinctrl-0 = <&uart1_default>;
+    pinctrl-names = "default";
+};
+
+
+&zephyr_udc0 {
+	status = "okay";
+};
