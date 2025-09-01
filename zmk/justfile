@@ -53,21 +53,35 @@ build_dir_base := app_dir / "build_corne"
 build_dir_rpico := build_dir_base + "_rpico"
 build_dir_nano := build_dir_base + "_nano"
 
+_supported_boards := ```
+    for board in sparkfun_pro_micro_rp2350 nice_nano rpi_pico; do
+        echo "$(west boards --board-root $(realpath ../zmk_playground_module) --name "$board" -f "{name}/{qualifiers}")"
+    done
+
+    ```
+supported_boards := ```
+    echo "Supported boards: "
+    for board in sparkfun_pro_micro_rp2350 nice_nano rpi_pico; do
+        echo "Short name: $board";
+        echo "Full name: $(west boards --board-root $(realpath ../zmk_playground_module) --name "$board" -f "{name}/{qualifiers}")"
+    done
+
+    ```
+
+full_board_name_cmd := 'west boards --board-root ' + zmk_playground_module_path  +  ' -f "{name}/{qualifiers}" ' + ' --name "$1"'
+nice_nano_board := shell(full_board_name_cmd, "nice_nano")
+
+
 artifacts_dir := app_dir / "artifacts"
-# --- Helper for OpenOCD path ---
-# pico_sdk_openocd_path := if openocd_path != '' { openocd_path } else { ` }
-zmk_studio_cmake_args := if env('ZMK_STUDIO', '')  == "1" { "-DZMK_STUDIO=1" } else { "" }
-snippet := zmk_studio_cmake_args && "studio-rpc-usb-uart "
-base_west_args := snippet + app_dir + " -p"
-cmake_args := " -DZMK_EXTRA_MODULES=" + zmk_playground_module_path + zmk_studio_cmake_args
-# cmake_args := if ZMK_STUDIO == "1" {"-DZMK_STUDIO=1" } else { "-DZMK_CONFIG=" + zmk_config_dir }
+corne_artifacts_dir := artifacts_dir / "corne"
+corne_left_artifacts_dir := corne_artifacts_dir / "left"
+corne_right_artifacts_dir := corne_artifacts_dir / "right"
+
 # --- Recipes ---
 
-default:
-    just --list
-    just print-env
-    just print-paths
 
+default: print-env print-paths print-supported-boards
+    just --list
 
 setup-nrfutil:
     #!/usr/bin/env bash
@@ -102,6 +116,9 @@ print-paths:
     @echo "zmk_config_dir={{zmk_config_dir}}"
     @echo "zmk_playground_module_path={{zmk_playground_module_path}}"
 
+print-supported-boards:
+    @echo "{{_supported_boards}}"
+
 west-boards-all:
     @echo "Getting all boards available"
     @west boards -f "{name}#_#_#{dir}#_#_{qualifiers}" | awk -v cwd="$(pwd)/" -F '#_#_#' 'BEGIN {print "| Board | Path | Qualifiers |"; print "|---|---|---|" } { sub(cwd, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $3); print "| " $1 " | " $2 " | " $3 " |"}'
@@ -110,52 +127,28 @@ west-boards-zmk:
    @echo "Getting boards available for zmk"
    @west boards -f "{name}#_#_#{dir}#_#_{qualifiers}" | awk -v cwd="$(pwd)/" -F '#_#_#' 'BEGIN {print "| Board | Path | Qualifiers |"; print "|---|---|---|" } $2 ~ /\/app\// { sub(cwd, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $3); print "| " $1 " | " $2 " | " $3 " |"}'
 
-post-build-zmk build_dir side board:
-    @echo "Copying hex and uf2 files to build directory"
-    cp {{build_dir}}/zephyr/zmk.hex {{artifacts_dir}}/{{board}}_{{side}}_{{datetime('%H:%M:%S')}}.hex
-    cp {{build_dir}}/zephyr/zmk.uf2 {{artifacts_dir}}/{{board}}_{{side}}_{{datetime('%H:%M:%S')}}.uf2
 
-    echo "Copying hex and uf2 files to build directory"
-    mkdir -p artifacts/corne/{{board}}/{{side}}_{{datetime('%H:%M:%S')}}
-    cp {{build_dir}}/zephyr/{zmk.uf2,zmk.hex} artifacts/corne/{{board}}/{{side}}_{{datetime('%H:%M:%S')}}/
+post-build-corne build_dir side board:
+    @echo "Creating artifacts directory"
+    mkdir -p {{ join( corne_artifacts_dir , side ,  board + "_" + datetime('%H:%M:%S') ) }}
+    @echo "Copying hex and uf2 files to artifacts directory"
+    cp {{build_dir}}/zephyr/{zmk.hex,zmk.uf2} {{ join( corne_artifacts_dir , side ,  board + "_" + datetime('%H:%M:%S') ) }}
 
 
-full_board_name := shell('west', 'boards' ,'--board-root' ,'$(realpath ../zmk_playground_module)' , '--name' , '"$1"', '-f' '"{name}/{qualifiers}"', sparkfun_pro_micro_rp2)
-full_board_name := `west boards --board-root $(realpath ../zmk_playground_module) --name "^sparkfun_pro_micro_rp2350" -f "{name}/{qualifiers}"`
 
 build-zmk build_dir board shield *WEST_ARGS:
     @echo "Building zmk for {{board}}"
     # --- Execute the command ---
-    west build -d {{build_dir}} -b {{full_board_name}} {{app_dir}} -p -- -DSHIELD={{shield}} -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config -DZMK_EXTRA_MODULES=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk_playground_module
+    west build -d {{build_dir}} -b {{ board }} {{WEST_ARGS}} {{app_dir}} -p -- -DSHIELD={{shield}} -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config -DZMK_EXTRA_MODULES=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk_playground_module
 
-build-nano *WEST_ARGS:
-    @echo "Building corne for nano"
-    # --- Execute the command ---
-    @echo "Building corne left for nice_nano"
-    west build -d {{build_dir_nano}}/left -b nice_nano -S zmk-usb-logging {{app_dir}} -p -- -DSHIELD=corne_left -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config
 
-    @echo "Building corne right for nice_nano"
-    west build -d {{build_dir_nano}}/right -b nice_nano -S zmk-usb-logging {{app_dir}} -p -- -DSHIELD=corne_right -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config
+build-corne build_dir board  *WEST_ARGS: (build-zmk join(build_dir, "left")  shell(full_board_name_cmd, board)  "corne_left" WEST_ARGS) (post-build-corne join(build_dir, "left") "left" board) (build-zmk join(build_dir, "right") shell(full_board_name_cmd, board) "corne_right" WEST_ARGS) (post-build-corne join(build_dir, "right") "right" board)
 
-    @echo "Copying hex and uf2 files to build directory"
-    cp {{build_dir_nano}}/left/zephyr/zmk.uf2 {{artifacts_dir}}/corne_nano_left_{{datetime('%H:%M:%S')}}.uf2
-    cp {{build_dir_nano}}/right/zephyr/zmk.uf2 {{artifacts_dir}}/corne_nano_right_{{datetime('%H:%M:%S')}}.uf2
+build-rpico *WEST_ARGS: (build-corne build_dir_rpico "sparkfun_pro_micro_rp2350" ("-S zmk-usb-logging" + WEST_ARGS))
 
-# build-rpico *WEST_ARGS:
-#     @echo "Building corne for sparkfun_pro_micro_rp2350/rp2350a/m33"
-#     # --- Execute the command ---
-#     @echo "Building corne left for sparkfun_pro_micro_rp2350/rp2350a/m33"
-#     west build -d {{build_dir_rpico}}/left -b sparkfun_pro_micro_rp2350/rp2350a/m33 -S zmk-usb-logging {{app_dir}} -p -- -DSHIELD=corne_left
-#
-#     @echo "Building corne right for sparkfun_pro_micro_rp2350/rp2350a/m33"
-#     west build -d {{build_dir_rpico}}/right -b sparkfun_pro_micro_rp2350/rp2350a/m33 -S zmk-usb-logging {{app_dir}} -p -- -DSHIELD=corne_right -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config -DZMK_EXTRA_MODULES=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk_playground_module
-#
-#
-#     @echo "Copying hex and uf2 files to build directory"
-#     cp {{build_dir_rpico}}/left/zephyr/zmk.hex {{artifacts_dir}}/corne_rpico_left_{{datetime('%H:%M:%S')}}.hex
-#     cp {{build_dir_rpico}}/right/zephyr/zmk.hex {{artifacts_dir}}/corne_rpico_right_{{datetime('%H:%M:%S')}}.hex
 
-build-rpico *WEST_ARGS: (build-zmk join(build_dir_rpico, "right")  "sparkfun_pro_micro_rp2350" "corne_right" "-S zmk-usb-console")
+build-nano *WEST_ARGS: (build-corne build_dir_nano "nice_nano" "-S zmk-usb-logging")
+
 
 flash-nano side:
     @echo "Flashing corne {{side}} to nice_nano"
@@ -193,4 +186,7 @@ _flash-jlink device build_dir="build" erase='true' reset='false' extra_opts='':
 
     @echo "INFO: Flash completed."
 
+
+
 # flash-rpico side: (flash-jlink "RP2350_M33_0" join(app_dir, build_dir, side, "zephyr", "zmk.hex"))
+
