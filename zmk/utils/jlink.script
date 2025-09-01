@@ -1,0 +1,9 @@
+ExitOnError 1
+r
+LE
+loadfile
+r
+g
+writeDP 1 0
+readDP 1
+q

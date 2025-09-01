@@ -1,5 +1,5 @@
-identifier: sparkfun_pro_micro_rpico
-name: Sparkfun Pro Micro RPICO
+identifier: sparkfun_pro_micro_rp2350
+name: Sparkfun Pro Micro RP2350
 type: mcu
 arch: arm
 flash: 16384
@@ -7,7 +7,6 @@ ram: 264
 toolchain:
   - zephyr
   - gnuarmemb
-  - xtools
 supported:
   - uart
   - gpio
@@ -19,3 +18,5 @@ supported:
   - pwm
   - flash
   - dma
+  - counter
+  - clock

@@ -20,16 +20,8 @@ LOG_MODULE_REGISTER(zmk, CONFIG_ZMK_LOG_LEVEL);
 #endif
 
 int main(void) {
-#if CONFIG_SHIELD_CORNE_RPICO_LEFT
-    LOG_INF("Welcome to ZMK from corne pico LEFT!\n");
 
-#elif CONFIG_SHIELD_CORNE_RPICO_RIGHT
-    LOG_INF("Welcome to ZMK from corne pico RIGHT!\n");
-
-#else
-#error "No shield defined"
-#endif
-
+    LOG_INF("Starting ZMK");
 #if IS_ENABLED(CONFIG_SETTINGS)
     settings_subsys_init();
     settings_load();

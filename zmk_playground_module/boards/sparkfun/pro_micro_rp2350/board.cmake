@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
-# This configuration allows selecting what debug adapter debugging rpi_pico
-# by a command-line argument.
+# This configuration allows selecting what debug adapter debugging to use
+# for the SparkFun Pro Micro RP2350 by a command-line argument.
 # It is mainly intended to support both the 'picoprobe' and 'raspberrypi-swd'
 # adapter described in "Getting started with Raspberry Pi Pico".
 # And any other SWD debug adapter might also be usable with this configuration.
+
+# Note that the Pro Micro RP2350 SWD pins are test points on the underside
+# of the board.
 
 # Set RPI_PICO_DEBUG_ADAPTER to select debug adapter by command-line arguments.
 # e.g.) west build -b rpi_pico -- -DRPI_PICO_DEBUG_ADAPTER=raspberrypi-swd
@@ -14,23 +17,24 @@
 # in the openocd interface configuration file.
 # The setting is store to CMakeCache.txt.
 if("${RPI_PICO_DEBUG_ADAPTER}" STREQUAL "")
-    set(RPI_PICO_DEBUG_ADAPTER "cmsis-dap")
+  set(RPI_PICO_DEBUG_ADAPTER "cmsis-dap")
 endif()
 
 board_runner_args(openocd --cmd-pre-init "source [find interface/${RPI_PICO_DEBUG_ADAPTER}.cfg]")
 board_runner_args(openocd --cmd-pre-init "transport select swd")
-board_runner_args(openocd --cmd-pre-init "source [find target/rp2040.cfg]")
+board_runner_args(openocd --cmd-pre-init "source [find target/rp2350.cfg]")
 
 # The adapter speed is expected to be set by interface configuration.
 # But if not so, set 2000 to adapter speed.
-board_runner_args(openocd --cmd-pre-init "set_adapter_speed_if_not_set 2000")
+board_runner_args(openocd --cmd-pre-init "set_adapter_speed_if_not_set 5000")
 
-board_runner_args(jlink "--device=RP2040_M0_0")
-board_runner_args(uf2 "--board-id=RPI-RP2")
-board_runner_args(pyocd "--target=rp2040")
+board_runner_args(probe-rs "--chip=RP235x")
+board_runner_args(jlink "--device=RP2350_M33_0")
+board_runner_args(uf2 "--board-id=RP2350")
+board_runner_args(pyocd "--target=rp2350")
 
+include(${ZEPHYR_BASE}/boards/common/uf2.board.cmake)
 include(${ZEPHYR_BASE}/boards/common/openocd.board.cmake)
 include(${ZEPHYR_BASE}/boards/common/jlink.board.cmake)
-include(${ZEPHYR_BASE}/boards/common/uf2.board.cmake)
 include(${ZEPHYR_BASE}/boards/common/blackmagicprobe.board.cmake)
 include(${ZEPHYR_BASE}/boards/common/pyocd.board.cmake)

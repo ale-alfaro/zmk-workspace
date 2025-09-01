@@ -1,0 +1,7 @@
+board:
+  name: sparkfun_pro_micro_rp2350
+  full_name: Pro Micro RP2350
+  vendor: sparkfun
+  socs:
+  - name: rp2350a
+
