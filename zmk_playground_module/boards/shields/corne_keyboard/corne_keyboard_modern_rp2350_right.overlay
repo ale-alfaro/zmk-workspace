@@ -1,0 +1,41 @@
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/input/keymap.h>
+#include "corne_keyboard_rp2350.overlay"
+&kbd_corne {
+
+    row-gpios
+        = <&pro_micro 14 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>
+        , <&pro_micro 15 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>
+        , <&pro_micro 18 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>
+        , <&pro_micro 19 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>
+        , <&pro_micro 20 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>
+        , <&pro_micro 21 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>
+        ;
+	actual-key-mask = <0x3F 0x3F 0x3F 0x07>;
+
+    /* Right side of the keyboard - Flipped Axis for RP2350
+
+      Col#|  0  |  1   |  2  |  3  |
+          |GP4  |GP5   |GP6  |GP7  |
+  Row#	  |-----|------|-----|-----|
+   0  GP14|  Y  |  H   |  N  | ENT |
+   1  GP15|  U  |  J   |  M  | RSE |
+   2  GP18|  I  |  K   |  ,  | ALT |
+   3  GP19|  O  |  L   |  .  |     |
+   4  GP20|  P  |  ;   |  /  |     |
+   5  GP21| BSPC|  '   | ESC |     |
+     */
+	keymap {
+		compatible = "input-keymap";
+		keymap = <
+			MATRIX_KEY(0,0, INPUT_KEY_Y)         MATRIX_KEY(0,1, INPUT_KEY_H)         MATRIX_KEY(0,2, INPUT_KEY_N)         MATRIX_KEY(0,3, INPUT_KEY_ENTER)
+			MATRIX_KEY(1,0, INPUT_KEY_U)         MATRIX_KEY(1,1, INPUT_KEY_J)         MATRIX_KEY(1,2, INPUT_KEY_M)         MATRIX_KEY(1,3, INPUT_KEY_LEFTBRACE)
+			MATRIX_KEY(2,0, INPUT_KEY_I)         MATRIX_KEY(2,1, INPUT_KEY_K)         MATRIX_KEY(2,2, INPUT_KEY_COMMA)     MATRIX_KEY(2,3, INPUT_KEY_RIGHTALT)
+			MATRIX_KEY(3,0, INPUT_KEY_O)         MATRIX_KEY(3,1, INPUT_KEY_L)         MATRIX_KEY(3,2, INPUT_KEY_DOT)
+			MATRIX_KEY(4,0, INPUT_KEY_P)         MATRIX_KEY(4,1, INPUT_KEY_SEMICOLON) MATRIX_KEY(4,2, INPUT_KEY_SLASH)
+			MATRIX_KEY(5,0, INPUT_KEY_BACKSPACE) MATRIX_KEY(5,1, INPUT_KEY_GRAVE)     MATRIX_KEY(5,2, INPUT_KEY_ESC)
+		>;
+		row-size = <6>;
+		col-size = <4>;
+	};
+};

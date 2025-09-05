@@ -1,14 +1,7 @@
-# Copyright (c) 2021 Pete Johanson
+# Copyright (c) 2025 Ale Alfaro
 # SPDX-License-Identifier: Apache-2.0
 
 if BOARD_SPARKFUN_PRO_MICRO_RP2350
-
-# if I2C_DW
-#
-# config I2C_DW_CLOCK_SPEED
-# 	default 125
-#
-# endif # I2C_DW
 
 config USB_SELF_POWERED
 	default n

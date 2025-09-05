@@ -5,21 +5,34 @@
 # pass flags to the build command, `snippet` to add a Zephyr snippet, and
 # `artifact-name` to assign a name to distinguish build outputs from each other:
 #
-# board: [ "nice_nano_v2" ]
-# shield: [ "corne_left", "corne_right" ]
-# include:
-#   - board: bdn9_rev2
-#   - board: nice_nano_v2
-#     shield: reviung41
-#   - board: nice_nano_v2
-#     shield: corne_left
-#     snippet: studio-rpc-usb-uart
-#     cmake-args: -DCONFIG_ZMK_STUDIO=y
-#     artifact-name: corne_left_with_studio
+# All boards will have the -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config -DZMK_EXTRA_MODULES=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk_playground_module
 #
+#
+
+ # include:
+ #   - board: nice_nano
+ #     shield: corne_left
+ #     snippet: studio-rpc-usb-uart
+ #     cmake-args: -DCONFIG_ZMK_STUDIO=y
+ #     artifact-name: nice_nano_corne_left
 ---
-include:
-  - board: rpi_pico
-    shield: corne_rpico_left
-  - board: rpi_pico
-    shield: corne_rpico_right
+ include:
+   - board: nice_nano_mcuboot/nrf52840
+     shield: corne_left
+     snippet: serial-console
+     artifact-name: nice_nano_corne_left
+   - board: nice_nano_mcuboot/nrf52840
+     shield: corne_right
+     snippet: serial-console
+     artifact-name: nice_nano_corne_right
+
+---
+ include:
+   - board: sparkfun_pro_micro_rp2350/rp2350a/m33
+     shield: corne_keyboard_zmk_left
+     snippet: serial-console
+     artifact-name: corne_rpico2_left
+   - board: sparkfun_pro_micro_rp2350/rp2350a/m33
+     shield: corne_keyboard_zmk_right
+     snippet: serial-console
+     artifact-name: corne_rpico2_right

@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) 2025 TOKITA Hiroshi
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+
+	kbd_corne: kbd-corne {
+		compatible = "gpio-kbd-matrix";
+		row-gpios =	<&pro_micro 4 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>, //Top row
+				<&pro_micro 5 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,
+				<&pro_micro 6 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,
+				<&pro_micro 7 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		/* idle-mode = "scan"; */
+		col-drive-inactive;
+		settle-time-us = <0>;
+		no-ghostkey-check;
+		/* settle-time-us = <50>; */
+		/* debounce-down-ms = <80>; */
+		/* debounce-up-ms = <40>; */
+		/* poll-timeout-ms = <500>; */
+		/* actual-key-mask = <0x07 0x07 0x07 0x0f 0x0f 0x0f>; */
+
+	};
+};
+
+

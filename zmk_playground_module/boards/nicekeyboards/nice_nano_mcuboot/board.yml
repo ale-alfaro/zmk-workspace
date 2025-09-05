@@ -1,0 +1,5 @@
+board:
+  name: nice_nano_mcuboot
+  vendor: nicekeyboards
+  socs:
+    - name: nrf52840

@@ -1,0 +1,21 @@
+
+
+
+
+if SHIELD_CORNE_KEYBOARD_ZMK_LEFT
+
+config ZMK_KEYBOARD_NAME
+    default "Corne ZMK"
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif
+
+if SHIELD_CORNE_KEYBOARD_ZMK_LEFT || SHIELD_CORNE_KEYBOARD_ZMK_RIGHT
+
+config ZMK_SPLIT
+    default y
+
+endif
+

@@ -1,0 +1,36 @@
+shields:
+  - name: corne_keyboard_left
+    full_name: Corne Split Keyboard (Left side)
+    vendor: ZMK
+    supported_features:
+      - input
+
+  - name: corne_keyboard_right
+    full_name: Corne Split Keyboard (Right side)
+    vendor: ZMK
+    supported_features:
+      - input
+
+  - name: corne_keyboard_modern_rp2350_right
+    full_name: Corne Split Keyboard (Right side) w/ RP2350 workaround for Errata E9 w/ new input subsystem
+    vendor: ZMK
+    supported_features:
+      - input
+
+  - name: corne_keyboard_modern_rp2350_left
+    full_name: Corne Split Keyboard (Left side) w/ RP2350 workaround for Errata E9 w/ new input subsystem
+    vendor: ZMK
+    supported_features:
+      - input
+
+  - name: corne_keyboard_rp2350_left
+    full_name: Corne Split Keyboard (Left side) - ZMK w/ RP2350 workaround for Errata E9
+    vendor: ZMK
+    supported_features:
+      - keys
+
+  - name: corne_keyboard_rp2350_right
+    full_name: Corne Split Keyboard (Right side) - ZMK w/ RP2350 workaround for Errata E9
+    vendor: ZMK
+    supported_features:
+      - keys

@@ -1,192 +1,68 @@
 #!/usr/bin/env just --justfile
 
-set dotenv-load := true
-set dotenv-filename := "justfile.env"
-set unstable := true
-set shell := ["bash", "-cu"]
-
-# Default command to run when no command is specified
-# --- Variables ---
-# Target MCU, can be 'rpico' or 'rpico2'. Overridden by TARGET_MCU env var.
-LEFT_TARGET_MCU := env('LEFT_TARGET_MCU', 'rpi_rpico')
-RIGHT_TARGET_MCU := env('TARGET_MCU', LEFT_TARGET_MCU)
-left_board := if LEFT_TARGET_MCU == "rpi_pico2" { "rpi_pico2/rp2350a/m33" } else { LEFT_TARGET_MCU }
-right_board := if RIGHT_TARGET_MCU == "rpi_pico2" { "rpi_pico2/rp2350a/m33" } else { RIGHT_TARGET_MCU }
-left_openocd_target := if LEFT_TARGET_MCU == "rpi_pico" { "rp2040" } else { "rp2350a" }
-right_openocd_target := if RIGHT_TARGET_MCU == "rpi_pico" { "rp2040" } else { "rp2350a" }
-JLINK_EXE := if os() == 'windows' { 'JLink.exe' } else { 'JLinkExe' }
-jlink_script_tmp_path := join(cache_directory(), "jlink.script.tmp")
-# Runner for the left side, 'jlink' or 'openocd'. Overridden by LEFT_RUNNER env var.
-left_runner:= env('LEFT_RUNNER', 'openocd')
-
-# Runner for the right side, 'jlink' or 'openocd'. Overridden by RIGHT_RUNNER env var.
-right_runner := env('RIGHT_RUNNER', 'openocd')
-LEFT_INTERFACE :=  if left_runner == 'openocd' { 'cmsis-dap' } else { 'jlink' }
-RIGHT_INTERFACE :=  if right_runner == 'openocd' { 'cmsis-dap' } else { 'jlink' }
-
-# Debug interface for the left side. Overridden by LEFT_INTERFACE env var.
-
-openocd_opts_left := "-f interface/" + LEFT_INTERFACE + ".cfg" + ' -f target/' + LEFT_TARGET_MCU + '.cfg' + ' -c "init; reset; exit"'
-openocd_opts_right := "-f interface/" + RIGHT_INTERFACE + ".cfg" + ' -f target/' + LEFT_TARGET_MCU + '.cfg' + ' -c "init; reset; exit"'
-
-
-# Debug interface for the right side. Overridden by RIGHT_INTERFACE env var.
-
-# Serial port for the left side. Overridden by LEFT_PORT env var.
-LEFT_PORT := env('LEFT_PORT', '/dev/ttyACM0')
-
-# Serial port for the right side. Overridden by RIGHT_PORT env var.
-RIGHT_PORT := env('RIGHT_PORT', '/dev/ttyACM1')
-
-# Path to Pico SDK OpenOCD scripts. Overridden by PICO_SDK_OPENOCD_PATH env var.
-openocd_path := env('PICO_OPENOCD_PATH', "$HOME/.pico-sdk/openocd")
+set shell := ["bash", "-c"]
 
 # --- Environment Setup ---
+
 proj_root := justfile_directory()
 app_dir := proj_root + "/app"
 workspace_dir := parent_directory(proj_root)
-zmk_config_dir := join(workspace_dir, 'zmk-config', 'config')
-zmk_playground_module_path := join(workspace_dir, 'zmk_playground_module')
-
-# --- Board and Build Directory ---
-build_dir_base := app_dir / "build_corne"
-build_dir_rpico := build_dir_base + "_rpico"
-build_dir_nano := build_dir_base + "_nano"
-
-_supported_boards := ```
-    for board in sparkfun_pro_micro_rp2350 nice_nano rpi_pico; do
-        echo "$(west boards --board-root $(realpath ../zmk_playground_module) --name "$board" -f "{name}/{qualifiers}")"
-    done
-
-    ```
-supported_boards := ```
-    echo "Supported boards: "
-    for board in sparkfun_pro_micro_rp2350 nice_nano rpi_pico; do
-        echo "Short name: $board";
-        echo "Full name: $(west boards --board-root $(realpath ../zmk_playground_module) --name "$board" -f "{name}/{qualifiers}")"
-    done
-
-    ```
-
-full_board_name_cmd := 'west boards --board-root ' + zmk_playground_module_path  +  ' -f "{name}/{qualifiers}" ' + ' --name "$1"'
-nice_nano_board := shell(full_board_name_cmd, "nice_nano")
-
-
+zmk_config_dir := join(workspace_dir, 'zmk-config')
+zmk_config := join(zmk_config_dir, 'config')
+zmk_module_dir := join(workspace_dir, 'zmk_playground_module')
+zmk_bindings_dir := join(app_dir, 'dts', 'bindings')
+export ZEPHYR_EXTRA_BINDINGS_DIR := zmk_bindings_dir
+zephyr_bindings_dir := join(zephyr_base, 'dts', 'bindings')
+zephyr_base := env('ZEPHYR_BASE')
 artifacts_dir := app_dir / "artifacts"
-corne_artifacts_dir := artifacts_dir / "corne"
-corne_left_artifacts_dir := corne_artifacts_dir / "left"
-corne_right_artifacts_dir := corne_artifacts_dir / "right"
+
+mod zephyr '~/.config/just/zephyr'
+mod JLink '~/.config/just/JLink'
+mod zmk-config '../zmk-config'
+
+full_board_name_cmd := 'west boards -f "{name}/{qualifiers}" --name "$1" --board-root {{zmk_module_dir}}'
 
 # --- Recipes ---
-
-
-default: print-env print-paths print-supported-boards
+default: list
     just --list
-
-setup-nrfutil:
-    #!/usr/bin/env bash
-    echo "Setting up nrfutil"
-    echo "Checking if nrfutil is installed"
-    if command -v nrfutil &> /dev/null 2>&1; then
-        echo "nrfutil already exists"
-    else
-        echo "Downloading nrfutil"
-        curl https://files.nordicsemi.com/artifactory/swtools/external/nrfutil/executables/x86_64-unknown-linux-gnu/nrfutil -o nrfutil
-        chmod +x nrfutil
-        mv nrfutil /usr/local/bin
-    fi
-    nrfutil install completion device nrf5sdk-tools toolchain-manager sdk-manager
-
-print-env:
-    @echo "Printing left side environment variables"
-    @echo "LEFT_TARGET_MCU={{LEFT_TARGET_MCU}}"
-    @echo "LEFT_INTERFACE={{LEFT_INTERFACE}}"
-    @echo "LEFT_PORT={{LEFT_PORT}}"
-
-    @echo "RIGHT_TARGET_MCU={{RIGHT_TARGET_MCU}}"
-    @echo "RIGHT_INTERFACE={{RIGHT_INTERFACE}}"
-    @echo "RIGHT_PORT={{RIGHT_PORT}}"
-
-    @echo "Printing other environment variables"
-    @echo "PICO_SDK_OPENOCD_PATH={{openocd_path}}"
+    @echo "Zephyr base is {{ zephyr_base }}"
 
 print-paths:
-    @echo "app_dir={{app_dir}}"
-    @echo "workspace_dir={{workspace_dir}}"
-    @echo "zmk_config_dir={{zmk_config_dir}}"
-    @echo "zmk_playground_module_path={{zmk_playground_module_path}}"
+    @echo "app_dir={{ app_dir }}"
+    @echo "workspace_dir={{ workspace_dir }}"
+    @echo "zmk_config_dir={{ zmk_config_dir }}"
+    @echo "zmk_module_dir={{ zmk_module_dir }}"
 
-print-supported-boards:
-    @echo "{{_supported_boards}}"
+import '../zmk-config/justfile'
 
-west-boards-all:
-    @echo "Getting all boards available"
-    @west boards -f "{name}#_#_#{dir}#_#_{qualifiers}" | awk -v cwd="$(pwd)/" -F '#_#_#' 'BEGIN {print "| Board | Path | Qualifiers |"; print "|---|---|---|" } { sub(cwd, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $3); print "| " $1 " | " $2 " | " $3 " |"}'
+# artifacts: list
+build board shield snippet artifact *extra_args:
+    just zephyr build-full {{ board }} {{ artifact }} {{ shield }} {{ snippet }} {{ app_dir }} '-- -DZMK_CONFIG={{ zmk_config }} -DZMK_EXTRA_MODULES={{ zmk_module_dir }} {{ extra_args }}'
 
-west-boards-zmk:
-   @echo "Getting boards available for zmk"
-   @west boards -f "{name}#_#_#{dir}#_#_{qualifiers}" | awk -v cwd="$(pwd)/" -F '#_#_#' 'BEGIN {print "| Board | Path | Qualifiers |"; print "|---|---|---|" } $2 ~ /\/app\// { sub(cwd, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $3); print "| " $1 " | " $2 " | " $3 " |"}'
+# build-zmk board shield snippet artifact_name *west_args:
+#     @echo "Building zmk for {{board}}"
+#     # --- Execute the command ---
+#     west build -s {{app_dir}} -d "{{app_dir}}/build_{{artifact_name}}" -b "{{ shell(full_board_name_cmd, board) }}" -S {{snippet}} {{west_args}} -p -- -DSHIELD={{shield}} -DZMK_CONFIG={{zmk_config}} -DZMK_EXTRA_MODULES={{zmk_module_dir}}
+#     @echo "Creating artifacts directory"
+#     @mkdir -p "{{artifacts_dir}}/{{artifact_name}}_{{datetime('%H:%M:%S')}}"
+#
+#     @echo "Copying hex and uf2 files to artifacts directory"
+#     cp {{app_dir}}/build_{{artifact_name}}/zephyr/{zmk.hex,zmk.uf2} {{artifacts_dir}}/{{artifact_name}}_{{datetime('%H:%M:%S')}}
 
+build-zmk expr *west_args: (parse_targets expr)
+    cat {{ targets_csv }} | while IFS=, read -r board shield snippet artifact; do \
+        echo "board: $board"; \
+        echo "shield: $shield"; \
+        echo "snippet: $snippet"; \
+        echo "artifact: $artifact"; \
+        just build "$board" "$shield" "$snippet" "$artifact" {{ west_args }}; \
+    done
 
-post-build-corne build_dir side board:
-    @echo "Creating artifacts directory"
-    mkdir -p {{ join( corne_artifacts_dir , side ,  board + "_" + datetime('%H:%M:%S') ) }}
-    @echo "Copying hex and uf2 files to artifacts directory"
-    cp {{build_dir}}/zephyr/{zmk.hex,zmk.uf2} {{ join( corne_artifacts_dir , side ,  board + "_" + datetime('%H:%M:%S') ) }}
+build-nice-nano: (build-zmk "nice_nano")
 
+build-pro-micro-rpico2: (build-zmk "sparkfun_pro_micro_rp2350")
 
+build-all: (build-zmk "all")
 
-build-zmk build_dir board shield *WEST_ARGS:
-    @echo "Building zmk for {{board}}"
-    # --- Execute the command ---
-    west build -d {{build_dir}} -b {{ board }} {{WEST_ARGS}} {{app_dir}} -p -- -DSHIELD={{shield}} -DZMK_CONFIG=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk-config/config -DZMK_EXTRA_MODULES=/home/alealfaro/GeekieStuff/dyi-keyboard/fw/zmk_playground_module
-
-
-build-corne build_dir board  *WEST_ARGS: (build-zmk join(build_dir, "left")  shell(full_board_name_cmd, board)  "corne_left" WEST_ARGS) (post-build-corne join(build_dir, "left") "left" board) (build-zmk join(build_dir, "right") shell(full_board_name_cmd, board) "corne_right" WEST_ARGS) (post-build-corne join(build_dir, "right") "right" board)
-
-build-rpico *WEST_ARGS: (build-corne build_dir_rpico "sparkfun_pro_micro_rp2350" ("-S zmk-usb-logging" + WEST_ARGS))
-
-
-build-nano *WEST_ARGS: (build-corne build_dir_nano "nice_nano" "-S zmk-usb-logging")
-
-
-flash-nano side:
-    @echo "Flashing corne {{side}} to nice_nano"
-    west flash -d "{{build_dir_nano}}/{{side}}" --runner uf2
-
-flash-rpi-pico2:
-    @echo "Flashing corne left for rpi_pico2"
-    openocd -s /home/alealfaro/.pico-sdk/openocd/0.12.0+dev/scripts -f interface/jlink.cfg -f target/rp2350.cfg -c "adapter speed 5000" -c "program build_corne/right/zephyr/zmk.hex verify reset exit"
-
-
-jlink_script_template := join(proj_root, "utils", "jlink.script")
-
-flash-jlink device hex_file erase='true' reset='false' extra_opts='':
-    sed 's#loadfile#& {{hex_file}}#g' {{jlink_script_template}} > {{jlink_script_tmp_path}}
-    @echo "INFO: Starting J-Link..."
-    {{JLINK_EXE}} \
-        -device "{{device}}" \
-        -if "swd" \
-        -speed "4000" \
-        -CommanderScript {{jlink_script_tmp_path}} \
-        -nogui 1 \
-        {{extra_opts}}
-
-_flash-jlink device build_dir="build" erase='true' reset='false' extra_opts='':
-    touch {{jlink_script_tmp_path}}
-    sed 's#loadfile#& {{join(build_dir, "zephyr", "zmk.hex")}}#g' {{jlink_script_template}} > {{jlink_script_tmp_path}}
-    @echo "INFO: Starting J-Link..."
-    {{JLINK_EXE}} \
-        -device "{{device}}" \
-        -if swd \
-        -speed auto \
-        -CommanderScript {{jlink_script_tmp_path}} \
-        -nogui 1 \
-        {{extra_opts}}
-
-    @echo "INFO: Flash completed."
-
-
-
-# flash-rpico side: (flash-jlink "RP2350_M33_0" join(app_dir, build_dir, side, "zephyr", "zmk.hex"))
-
+clean-all:
+    rm -r {{ app_dir }}/build*

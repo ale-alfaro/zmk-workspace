@@ -2,8 +2,8 @@ identifier: sparkfun_pro_micro_rp2350
 name: Sparkfun Pro Micro RP2350
 type: mcu
 arch: arm
-flash: 16384
-ram: 264
+flash: 4096 # 16384 with external flash
+ram: 520
 toolchain:
   - zephyr
   - gnuarmemb

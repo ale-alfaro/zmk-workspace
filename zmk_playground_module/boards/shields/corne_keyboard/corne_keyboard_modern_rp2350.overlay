@@ -1,0 +1,29 @@
+/*
+* Workaround for RP2350 pull-down errata.
+* See GEMINI.md for a full explanation.
+*
+* We swap rows and columns.
+* New rows (original columns) are inputs with pull-ups, active-low.
+* New columns (original rows) are outputs, driven active-low.
+*/
+
+/ {
+
+	kbd_corne: kbd-corne {
+		compatible = "gpio-kbd-matrix";
+
+
+		col-gpios
+			= <&pro_micro 4 GPIO_ACTIVE_LOW>
+			, <&pro_micro 5 GPIO_ACTIVE_LOW>
+			, <&pro_micro 6 GPIO_ACTIVE_LOW>
+			, <&pro_micro 7 GPIO_ACTIVE_LOW>
+			;
+
+		/* Power-saving interrupt-driven idle mode */
+		idle-mode = "interrupt";
+
+		/* Disable software ghost key checking since hardware has diodes */
+		no-ghostkey-check;
+	};
+};

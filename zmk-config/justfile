@@ -1,0 +1,71 @@
+set unstable := true
+zmk_module := join(env('WEST_TOPDIR'), 'zmk_playground_module')
+build_yaml := source_directory() / 'build.yaml'
+keymap_draw_dir := source_directory() / 'draw'
+keymap_draw_yaml := keymap_draw_dir / 'config.yaml'
+config := source_directory() / 'config'
+targets_csv := source_directory() / 'targets.csv'
+# parse build.yaml and filter targets by expression
+all_yaml_attrs := '[.board, .shield, .snippet, ."artifact-name"]'
+yaml_filter := "((" + all_yaml_attrs + "| map(. // [.]) | combinations), ((.include // {})[] | " + all_yaml_attrs + "))"
+
+# full_board_name_cmd := 'west boards -f "{name}/{qualifiers}" --name "$1" --board-root {{zmk_module}}'
+
+parse_targets expr="all":
+    @yq -r '{{yaml_filter}} | join(",")' {{build_yaml}} | grep -v ^, | grep -i  {{if expr == "all" { "'.*'"} else { expr } }} | tee {{targets_csv}}
+
+# List all build artifact names from build.yaml
+list:
+    @yq -r '.include[].["artifact-name"]' {{build_yaml}} | sort
+
+# Get all build parameters for a target as a single tab-separated line.
+# This is much more efficient as it only invokes yq once.
+# Output order: board, shield, snippet, cmake-args
+get_target_config target:
+    @yq -r '.include[] | select(.["artifact-name"] == "{{target}}") | [.board, .shield, .snippet // "", .["cmake-args"] // ""] | @tsv' {{build_yaml}}
+
+kmp-draw := which("keymap")
+
+# list build targets
+# list:
+#     @just parse_targets | sed 's/,*$//' | sort | column
+#
+check-keymap-drawer:
+    {{ if  kmp-draw == '' { shell("pip install keymap-drawer") } else { '' } }}
+    {{ if path_exists(keymap_draw_yaml) == '' { '' } else { error("keymap-drawer config file not found") } }}
+
+# parse & plot keymap
+draw: check-keymap-drawer
+    @keymap -c "{{ keymap_draw_yaml }}" parse -z "{{ config }}/base.keymap" --virtual-layers Combos >"{{ keymap_draw_dir  }}/base.yaml"
+
+# yq -Yi '.combos.[].l = ["Combos"]' "{{ draw }}/base.yaml"
+# keymap -c "{{ draw }}/config.yaml" draw "{{ draw }}/base.yaml" -k "ferris/sweep" >"{{ draw }}/base.svg"
+
+
+# [no-cd]
+# test $testpath *FLAGS:
+#     #!/usr/bin/env bash
+#     set -euo pipefail
+#     testcase=$(basename "$testpath")
+#     build_dir="{{ build / "tests" / '$testcase' }}"
+#     config_dir="{{ '$(pwd)' / '$testpath' }}"
+#     cd {{ justfile_directory() }}
+#
+#     if [[ "{{ FLAGS }}" != *"--no-build"* ]]; then
+#         echo "Running $testcase..."
+#         rm -rf "$build_dir"
+#         west build -s zmk/app -d "$build_dir" -b native_posix_64 -- \
+#             -DCONFIG_ASSERT=y -DZMK_CONFIG="$config_dir"
+#     fi
+#
+#     ${build_dir}/zephyr/zmk.exe | sed -e "s/.*> //" |
+#         tee ${build_dir}/keycode_events.full.log |
+#         sed -n -f ${config_dir}/events.patterns > ${build_dir}/keycode_events.log
+#     if [[ "{{ FLAGS }}" == *"--verbose"* ]]; then
+#         cat ${build_dir}/keycode_events.log
+#     fi
+#
+#     if [[ "{{ FLAGS }}" == *"--auto-accept"* ]]; then
+#         cp ${build_dir}/keycode_events.log ${config_dir}/keycode_events.snapshot
+#     fi
+#     diff -auZ ${config_dir}/keycode_events.snapshot ${build_dir}/keycode_events.log
